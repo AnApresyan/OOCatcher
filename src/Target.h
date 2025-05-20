@@ -31,5 +31,7 @@ public:
     for (int i = 0; i < 5; ++i)
         DrawCircleV(star[i], 3, color);
 }
+Vector2 getPos()     const { return pos; }
+
 
 };

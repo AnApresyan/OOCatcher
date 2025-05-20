@@ -50,4 +50,7 @@ public:
         DrawCircleV(pos, radius, Fade(color, 0.25f));
         // DrawCircleLines((int)pos.x, (int)pos.y, (int)radius, color);
     }
+    Vector2 getPos()     const { return pos; }
+    float   getRadius()  const { return radius; }
+    void    setState(BallState s) { state = s; }
 };
