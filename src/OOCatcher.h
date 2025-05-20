@@ -1,9 +1,10 @@
 #pragma once
 #include <vector>
 #include "BodySegment.h"
-class OOCatcher {
+class OOCatcher
+{
 public:
-    std::vector<BodySegment*> segments;
+    std::vector<BodySegment *> segments;
     virtual void init() = 0;
     virtual void step() = 0;
     virtual void draw() = 0;

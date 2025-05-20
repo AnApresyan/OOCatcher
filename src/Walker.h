@@ -3,20 +3,23 @@
 #include "OOCatcher.h"
 #include <vector>
 
-struct Limb2 {
+struct Limb2
+{
     Vector2 root;
     float len1, len2;
     float theta1, theta2;
     Vector2 joint, tip;
 };
 
-struct Finger2 {
+struct Finger2
+{
     Vector2 root;
     float len, angle;
     Vector2 tip;
 };
 
-class Walker : public OOCatcher {
+class Walker : public OOCatcher
+{
 public:
     Walker(Vector2 ballCenter, float ballRadius);
     void init() override;
