@@ -1,6 +1,4 @@
-# Makefile for building C++ raylib project with CMake
-
-.PHONY: all build run clean
+.PHONY: all build run clean say
 
 BUILD_DIR = build
 
@@ -15,3 +13,8 @@ run: build
 
 clean:
 	rm -rf $(BUILD_DIR)
+
+say:
+	$(MAKE) clean
+	$(MAKE) build
+	$(MAKE) run

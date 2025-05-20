@@ -1,4 +1,5 @@
 #include "Walker.h"
+#include <algorithm>
 #include <cmath>
 
 Walker::Walker(Vector2 ballC, float ballR)
@@ -41,17 +42,48 @@ void Walker::step() {
 }
 
 void Walker::updateTorso() {
-    float bob = 3.0f * sinf(2 * t);      
-    float sway = 3.0f * sinf(t);        
+    float bob = 3.0f * sinf(2 * t);
+    float sway = 3.0f * sinf(t);
 
     float legLength = 46.0f + 44.0f;
     float hipY = baseY - legLength + 18.0f - bob;
-
     torsoBottom = { position.x + sway, hipY };
-    torsoTop = { torsoBottom.x, torsoBottom.y - torsoLen };
+
+    // Torso lean angle
+    float torsoAngle = 0.0f;
+    float squatAmount = 0.0f;
+
+    if (reached) {
+        float upperArm = 38.0f, lowerArm = 34.0f, finger = 10.0f;
+        float maxReach = upperArm + lowerArm + finger;
+
+        Vector2 testTorsoTop = { torsoBottom.x, torsoBottom.y - torsoLen };
+        float dist = sqrtf((testTorsoTop.x - ballCenter.x) * (testTorsoTop.x - ballCenter.x) +
+                           (testTorsoTop.y - ballCenter.y) * (testTorsoTop.y - ballCenter.y));
+        if (dist > maxReach) {
+            float neededReach = dist - maxReach;
+            float maxSquat = 38.0f; // max hip drop (tune for your model)
+            squatAmount = std::min(neededReach, maxSquat);
+            torsoBottom.y += squatAmount;
+
+            // Recompute after squat
+            testTorsoTop = { torsoBottom.x, torsoBottom.y - torsoLen };
+            dist = sqrtf((testTorsoTop.x - ballCenter.x) * (testTorsoTop.x - ballCenter.x) +
+                         (testTorsoTop.y - ballCenter.y) * (testTorsoTop.y - ballCenter.y));
+            if (dist > maxReach) {
+                // If still can't reach, lean the torso
+                Vector2 toBall = { ballCenter.x - torsoBottom.x, ballCenter.y - torsoBottom.y };
+                torsoAngle = std::clamp(atan2f(toBall.x, toBall.y), -0.7f, 0.7f);
+            }
+        }
+    }
+
+    torsoTop = {
+        torsoBottom.x + torsoLen * sinf(torsoAngle),
+        torsoBottom.y - torsoLen * cosf(torsoAngle)
+    };
     headCenter = { torsoTop.x, torsoTop.y - headRadius - 4 };
 }
-
 
 void Walker::updateLegs() {
     float upper = 46.0f, lower = 44.0f;
