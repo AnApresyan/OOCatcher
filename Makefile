@@ -14,7 +14,7 @@ run: build
 clean:
 	rm -rf $(BUILD_DIR)
 
-say:
+rerun:
 	$(MAKE) clean
 	$(MAKE) build
 	$(MAKE) run
