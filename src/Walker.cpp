@@ -154,6 +154,52 @@ void Walker::updateArms() {
     Vector2 shoulderR = { torsoTop.x + 18, torsoTop.y + 5 };
 
     float upper = 38.0f, lower = 34.0f;
+
+    // THROW ANIMATION (overrides all else if active)
+    if (throwWindupPhase > 0.0f || throwFwdPhase > 0.0f) {
+        // Animate right arm: windup, then throw
+        float baseAngle = 1.1f;      // resting
+        float windupAngle = 2.5f;    // wind up far back
+        float throwAngle = -0.9f;    // full forward swing
+
+        float swing = (1.0f - throwWindupPhase) * baseAngle + throwWindupPhase * windupAngle;
+        if (throwFwdPhase > 0.0f) {
+            swing = (1.0f - throwFwdPhase) * windupAngle + throwFwdPhase * throwAngle;
+        }
+
+        rightArm.root = shoulderR;
+        rightArm.len1 = upper;
+        rightArm.len2 = lower;
+        rightArm.theta1 = swing;
+        rightArm.theta2 = 0.15f * (throwFwdPhase > 0.0f ? -sinf(PI * throwFwdPhase) : sinf(throwWindupPhase));
+        rightArm.joint = {
+            rightArm.root.x + upper * sinf(rightArm.theta1),
+            rightArm.root.y + upper * cosf(rightArm.theta1)
+        };
+        rightArm.tip = {
+            rightArm.joint.x + lower * sinf(rightArm.theta1 + rightArm.theta2),
+            rightArm.joint.y + lower * cosf(rightArm.theta1 + rightArm.theta2)
+        };
+
+        // Left arm just idle during throw
+        leftArm.root = shoulderL;
+        leftArm.len1 = upper;
+        leftArm.len2 = lower;
+        leftArm.theta1 = -1.2f;
+        leftArm.theta2 = 0.0f;
+        leftArm.joint = {
+            leftArm.root.x + upper * sinf(leftArm.theta1),
+            leftArm.root.y + upper * cosf(leftArm.theta1)
+        };
+        leftArm.tip = {
+            leftArm.joint.x + lower * sinf(leftArm.theta1 + leftArm.theta2),
+            leftArm.joint.y + lower * cosf(leftArm.theta1 + leftArm.theta2)
+        };
+
+        return;
+    }
+
+    // --- DEFAULT (walking/idle/grab) ---
     float swingL = 0.8f * sinf(t + PI);
     float swingR = 0.8f * sinf(t);
 
@@ -206,6 +252,7 @@ void Walker::updateArms() {
         };
     }
 }
+
 
 void Walker::updateFingers() {
     for (int i = 0; i < 3; ++i) {
@@ -267,4 +314,9 @@ void Walker::setStandUp(bool value) {
 
 Vector2 Walker::getHandPos() const {
     return rightArm.tip;
+}
+
+void Walker::setThrowAnim(float windup, float throwFwd) {
+    throwWindupPhase = windup;
+    throwFwdPhase = throwFwd;
 }

@@ -59,6 +59,10 @@ int main() {
     float timeSinceThrow = 0.0f;
     float flightTime = 0.9f;
 
+    bool throwAnimating = false;
+    float throwAnimTime = 0.0f;
+    float throwAnimDuration = 0.40f;
+
     while (!WindowShouldClose()) {
         if (IsKeyPressed(KEY_R)) {
             ball = randomBall();
@@ -92,12 +96,35 @@ int main() {
         }
 
         if (targetActive && stickmanShouldStand && !ballFlying && IsKeyPressed(KEY_T)) {
-            Vector2 start = walker.getHandPos();
-            Vector2 end = target.pos;
-            ballVelocity.x = (end.x - start.x) / flightTime;
-            ballVelocity.y = (end.y - start.y - 0.5f * gravity * flightTime * flightTime) / flightTime;
-            ballFlying = true;
-            timeSinceThrow = 0.0f;
+            throwAnimating = true;
+            throwAnimTime = 0.0f;
+            
+            // Vector2 start = walker.getHandPos();
+            // Vector2 end = target.pos;
+            // ballVelocity.x = (end.x - start.x) / flightTime;
+            // ballVelocity.y = (end.y - start.y - 0.5f * gravity * flightTime * flightTime) / flightTime;
+            // ballFlying = true;
+            // timeSinceThrow = 0.0f;
+        }
+        if (throwAnimating) {
+            throwAnimTime += GetFrameTime();
+            float phase = fminf(throwAnimTime / throwAnimDuration, 1.0f);
+            walker.setThrowAnim(1.0f, phase);
+            ball.center = walker.getHandPos();
+        
+            if (phase >= 1.0f) {
+                Vector2 start = walker.getHandPos();
+                Vector2 end = target.pos;
+                ballVelocity.x = (end.x - start.x) / flightTime;
+                ballVelocity.y = (end.y - start.y - 0.5f * gravity * flightTime * flightTime) / flightTime;
+                ballFlying = true;
+                throwAnimating = false;
+                timeSinceThrow = 0.0f;
+                walker.setThrowAnim(0.0f, 0.0f);
+            }
+        } else if (stickmanShouldStand && !ballFlying) {
+            walker.setThrowAnim(0.0f, 0.0f);
+            ball.center = walker.getHandPos();
         }
 
         if (ballFlying) {

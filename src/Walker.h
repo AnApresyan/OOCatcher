@@ -25,6 +25,7 @@ public:
     void setStandUp(bool value);
     bool fingersTouchingBall() const;
     Vector2 getHandPos() const;
+    void setThrowAnim(float windup, float throwFwd);
 
 private:
     float t; // phase
@@ -42,4 +43,6 @@ private:
     void updateFingers();
     // void reachForBall();
     bool standUp = false;
+    float throwWindupPhase = 0.0f;
+    float throwFwdPhase = 0.0f;
 };
