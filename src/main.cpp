@@ -8,15 +8,25 @@ int main() {
     SetTargetFPS(60);
 
     float groundY = 500.0f;
-    Vector2 ballCenter = { 650.0f, groundY - 50.0f };
     float ballRadius = 32.0f;
+    std::srand(std::time(nullptr)); // initialize random seed
+
+    // Function to get a random ball position (not too close to the left side)
+    auto randomBallCenter = [&]() {
+        float x = 400 + rand() % (screenW - 500); // [400, screenW-100]
+        float y = groundY - 50.0f - (rand() % 60); // somewhere above ground
+        return Vector2{ x, y };
+    };
+
+    Vector2 ballCenter = randomBallCenter();
 
     Walker walker(ballCenter, ballRadius);
     walker.init();
 
     while (!WindowShouldClose()) {
-        // Restart if R is pressed
         if (IsKeyPressed(KEY_R)) {
+            ballCenter = randomBallCenter();
+            walker = Walker(ballCenter, ballRadius); // Re-create with new ball
             walker.init();
         }
 

@@ -36,7 +36,7 @@ void Walker::step() {
     updateTorso();
     updateLegs();
     updateArms();
-    if (reached) reachForBall();
+    // if (reached) reachForBall();
     updateFingers();
 }
 
@@ -193,9 +193,9 @@ void Walker::updateFingers() {
     }
 }
 
-void Walker::reachForBall() {
-    // Already handled in updateArms() and updateFingers()
-}
+// void Walker::reachForBall() {
+//     // Already handled in updateArms() and updateFingers()
+// }
 
 bool Walker::fingersTouchingBall() const {
     int count = 0;

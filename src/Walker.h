@@ -36,6 +36,6 @@ private:
     void updateLegs();
     void updateArms();
     void updateFingers();
-    void reachForBall();
+    // void reachForBall();
     bool fingersTouchingBall() const;
 };
