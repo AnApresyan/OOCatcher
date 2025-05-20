@@ -124,12 +124,19 @@ void Game::draw() {
 }
 
 Ball Game::randomBall() {
-    float x = 400 + std::rand() % (screenW - 500);
-    float y = groundY - (std::rand() % 4);
-    float r = 16.0f + std::rand() % 18;
-    Color c = possibleColors[std::rand() % possibleColors.size()];
+    float r = 16.0f + std::rand() % 18;            
+    float x = 400 + std::rand() % (screenW - 500); 
+
+    const int maxVerticalOffset = 200; 
+
+    int minY = static_cast<int>(groundY - r - maxVerticalOffset);
+    int maxY = static_cast<int>(groundY - r);
+    float y = static_cast<float>(minY + (std::rand() % (maxY - minY + 1)));
+
+    Color c = possibleColors[ std::rand() % possibleColors.size() ];
     return Ball({ x, y }, r, c);
 }
+
 
 Target Game::randomTarget() {
     float x = 100 + std::rand() % (screenW - 200);
