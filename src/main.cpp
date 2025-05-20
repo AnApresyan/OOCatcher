@@ -49,8 +49,15 @@ int main() {
     walker.init();
     Color currentBallColor = ball.color;
 
-    bool stickmanShouldStand = false; // Only stands after pressing SPACE after touching
-    bool ballTouched = false;         // Track if ball is already touched
+    bool stickmanShouldStand = false; 
+    bool ballTouched = false;         
+
+    // Throwing variables
+    bool ballFlying = false;
+    Vector2 ballVelocity = {0, 0};
+    float gravity = 750.0f;
+    float timeSinceThrow = 0.0f;
+    float flightTime = 0.9f;
 
     while (!WindowShouldClose()) {
         if (IsKeyPressed(KEY_R)) {
@@ -61,6 +68,9 @@ int main() {
             stickmanShouldStand = false;
             ballTouched = false;
             targetActive = false;
+            ballFlying = false;
+            timeSinceThrow = 0.0f;
+            ballVelocity = {0, 0};
         }
 
         walker.step();
@@ -74,15 +84,35 @@ int main() {
             target = randomTarget();
             targetActive = true;
         }
-        if (targetActive)
-            target.draw();
 
         walker.setStandUp(stickmanShouldStand);
 
-        if (stickmanShouldStand) {
-            ball.center = walker.getHandPos(); 
+        if (stickmanShouldStand && !ballFlying) {
+            ball.center = walker.getHandPos();
         }
 
+        if (targetActive && stickmanShouldStand && !ballFlying && IsKeyPressed(KEY_T)) {
+            Vector2 start = walker.getHandPos();
+            Vector2 end = target.pos;
+            ballVelocity.x = (end.x - start.x) / flightTime;
+            ballVelocity.y = (end.y - start.y - 0.5f * gravity * flightTime * flightTime) / flightTime;
+            ballFlying = true;
+            timeSinceThrow = 0.0f;
+        }
+
+        if (ballFlying) {
+            float dt = GetFrameTime();
+            timeSinceThrow += dt;
+            ball.center.x += ballVelocity.x * dt;
+            ball.center.y += ballVelocity.y * dt;
+            ballVelocity.y += gravity * dt;
+
+            // Land on ground and stop
+            if (ball.center.y >= groundY - ball.radius) {
+                ball.center.y = groundY - ball.radius;
+                ballFlying = false;
+            }
+        }
 
         BeginDrawing();
         ClearBackground(RAYWHITE);
@@ -92,12 +122,18 @@ int main() {
         walker.draw();
 
         DrawCircleV(ball.center, ball.radius, Fade(currentBallColor, 0.2f));
+        DrawCircleLines((int)ball.center.x, (int)ball.center.y, (int)ball.radius, currentBallColor);
+
+        if (targetActive)
+            target.draw();
 
         DrawText("Walker Mode", 10, 10, 20, GRAY);
         DrawText("Press R to Restart", 10, 35, 18, DARKGRAY);
 
         if (ballTouched && !stickmanShouldStand)
             DrawText("Press SPACE to Activate Throwing Mode!", 10, 60, 22, BLUE);
+        if (targetActive && stickmanShouldStand && !ballFlying)
+            DrawText("Press T to Throw Ball at Star!", 10, 90, 22, RED);
 
         EndDrawing();
     }
