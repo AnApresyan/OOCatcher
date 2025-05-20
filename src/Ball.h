@@ -48,6 +48,6 @@ public:
 
     void draw() const {
         DrawCircleV(pos, radius, Fade(color, 0.25f));
-        DrawCircleLines((int)pos.x, (int)pos.y, (int)radius, color);
+        // DrawCircleLines((int)pos.x, (int)pos.y, (int)radius, color);
     }
 };

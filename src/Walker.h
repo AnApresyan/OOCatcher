@@ -22,6 +22,10 @@ public:
     void init() override;
     void step() override;
     void draw() override;
+    void setStandUp(bool value);
+    bool fingersTouchingBall() const;
+    Vector2 getHandPos() const;
+
 private:
     float t; // phase
     Vector2 position;
@@ -37,5 +41,5 @@ private:
     void updateArms();
     void updateFingers();
     // void reachForBall();
-    bool fingersTouchingBall() const;
+    bool standUp = false;
 };

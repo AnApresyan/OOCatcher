@@ -11,14 +11,14 @@ void Walker::init() {
 
     baseY = 500.0f;
     float legLength = 46.0f + 44.0f;
-    position = { 100, baseY - legLength + 18.0f }; // Hips above ground
+    position = { 100, baseY - legLength + 18.0f };
 
     speed = 2.0f;
-    stride = 22.0f;   // reduced stride
-    lift = 8.0f;      // reduced lift
+    stride = 22.0f;  
+    lift = 8.0f;    
     torsoLen = 80.0f;
     headRadius = 18.0f;
-    stepPeriod = 48.0f; // larger = slower
+    stepPeriod = 48.0f;
 
     fingers.resize(3);
 }
@@ -37,7 +37,6 @@ void Walker::step() {
     updateTorso();
     updateLegs();
     updateArms();
-    // if (reached) reachForBall();
     updateFingers();
 }
 
@@ -49,34 +48,36 @@ void Walker::updateTorso() {
     float hipY = baseY - legLength + 18.0f - bob;
     torsoBottom = { position.x + sway, hipY };
 
-    // Torso lean angle
     float torsoAngle = 0.0f;
     float squatAmount = 0.0f;
 
     if (reached) {
-        float upperArm = 38.0f, lowerArm = 34.0f, finger = 10.0f;
-        float maxReach = upperArm + lowerArm + finger;
-
-        Vector2 testTorsoTop = { torsoBottom.x, torsoBottom.y - torsoLen };
-        float dist = sqrtf((testTorsoTop.x - ballCenter.x) * (testTorsoTop.x - ballCenter.x) +
-                           (testTorsoTop.y - ballCenter.y) * (testTorsoTop.y - ballCenter.y));
-        if (dist > maxReach) {
-            float neededReach = dist - maxReach;
-            float maxSquat = 38.0f; // max hip drop (tune for your model)
-            squatAmount = std::min(neededReach, maxSquat);
-            torsoBottom.y += squatAmount;
-
-            // Recompute after squat
-            testTorsoTop = { torsoBottom.x, torsoBottom.y - torsoLen };
-            dist = sqrtf((testTorsoTop.x - ballCenter.x) * (testTorsoTop.x - ballCenter.x) +
-                         (testTorsoTop.y - ballCenter.y) * (testTorsoTop.y - ballCenter.y));
+        if (standUp) {
+            torsoAngle = 0.0f;
+        } else {
+            float upperArm = 38.0f, lowerArm = 34.0f, finger = 10.0f;
+            float maxReach = upperArm + lowerArm + finger;
+    
+            Vector2 testTorsoTop = { torsoBottom.x, torsoBottom.y - torsoLen };
+            float dist = sqrtf((testTorsoTop.x - ballCenter.x) * (testTorsoTop.x - ballCenter.x) +
+                               (testTorsoTop.y - ballCenter.y) * (testTorsoTop.y - ballCenter.y));
             if (dist > maxReach) {
-                // If still can't reach, lean the torso
-                Vector2 toBall = { ballCenter.x - torsoBottom.x, ballCenter.y - torsoBottom.y };
-                torsoAngle = std::clamp(atan2f(toBall.x, toBall.y), -0.7f, 0.7f);
+                float neededReach = dist - maxReach;
+                float maxSquat = 38.0f; 
+                squatAmount = std::min(neededReach, maxSquat);
+                torsoBottom.y += squatAmount;
+    
+                testTorsoTop = { torsoBottom.x, torsoBottom.y - torsoLen };
+                dist = sqrtf((testTorsoTop.x - ballCenter.x) * (testTorsoTop.x - ballCenter.x) +
+                             (testTorsoTop.y - ballCenter.y) * (testTorsoTop.y - ballCenter.y));
+                if (dist > maxReach) {
+                    Vector2 toBall = { ballCenter.x - torsoBottom.x, ballCenter.y - torsoBottom.y };
+                    torsoAngle = std::clamp(atan2f(toBall.x, toBall.y), -0.7f, 0.7f);
+                }
             }
         }
     }
+    
 
     torsoTop = {
         torsoBottom.x + torsoLen * sinf(torsoAngle),
@@ -93,24 +94,20 @@ void Walker::updateLegs() {
     float phaseL = cycle;
     float phaseR = cycle + PI;
 
-    // Parameters for a more human walk
     float stanceDuration = 0.6f;
     float swingStart = 2 * PI * (1 - stanceDuration);
 
-    // WIDER hips and feet for a bigger stride
     auto compute_leg = [&](float phase, Vector2 hip, bool isLeft) -> std::pair<Vector2, float> {
         float normPhase = fmod(phase, 2 * PI);
 
         float stepX = 0, stepY = 0, kneeBend = 0;
         if (normPhase < swingStart) {
-            // SWING
             float swingNorm = normPhase / swingStart;
-            stepX = (isLeft ? -13.0f : 13.0f) + stride * (2 * swingNorm - 1); // widened foot offset
+            stepX = (isLeft ? -13.0f : 13.0f) + stride * (2 * swingNorm - 1);
             stepY = baseY - lift * sinf(PI * swingNorm);
             kneeBend = 0.9f * (1 - swingNorm);
         } else {
-            // STANCE
-            stepX = (isLeft ? -13.0f : 13.0f); // widened foot offset
+            stepX = (isLeft ? -13.0f : 13.0f); 
             stepY = baseY;
             kneeBend = 0.2f * (1 - cosf(PI * (normPhase - swingStart) / (2 * PI * stanceDuration)));
         }
@@ -118,14 +115,12 @@ void Walker::updateLegs() {
         return { foot, kneeBend };
     };
 
-    // WIDENED hips for natural gait
     Vector2 hipL = { torsoBottom.x - 12, torsoBottom.y };
     Vector2 hipR = { torsoBottom.x + 12, torsoBottom.y };
 
     auto [footL, bendL] = compute_leg(phaseL, hipL, true);
     auto [footR, bendR] = compute_leg(phaseR, hipR, false);
 
-    // Solve 2-bone IK, blend the knee bend in swing phase
     auto solve_leg = [](Vector2 hip, Vector2 foot, float upper, float lower, float kneeBlend, Limb2& limb) {
         Vector2 d = { foot.x - hip.x, foot.y - hip.y };
         float len = sqrtf(d.x * d.x + d.y * d.y);
@@ -225,10 +220,6 @@ void Walker::updateFingers() {
     }
 }
 
-// void Walker::reachForBall() {
-//     // Already handled in updateArms() and updateFingers()
-// }
-
 bool Walker::fingersTouchingBall() const {
     int count = 0;
     for (const auto& f : fingers)
@@ -265,10 +256,15 @@ void Walker::draw() {
     for (auto& f : fingers)
         DrawLineV(f.root, f.tip, MAROON), DrawCircleV(f.tip, 2, RED);
 
-    // Draw the ball
-    DrawCircleLines((int)ballCenter.x, (int)ballCenter.y, (int)ballRadius, RED);
 
-    // Show text when all fingers touch
     if (fingersTouchingBall())
         DrawText("TOUCH!", (int)ballCenter.x + 25, (int)ballCenter.y - 30, 20, GREEN);
+}
+
+void Walker::setStandUp(bool value) {
+    standUp = value;
+}
+
+Vector2 Walker::getHandPos() const {
+    return rightArm.tip;
 }
