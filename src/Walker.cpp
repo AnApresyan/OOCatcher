@@ -13,7 +13,7 @@ void Walker::init() {
     position = { 100, baseY - legLength + 18.0f }; // Hips above ground
 
     speed = 2.0f;
-    stride = 15.0f;   // reduced stride
+    stride = 22.0f;   // reduced stride
     lift = 8.0f;      // reduced lift
     torsoLen = 80.0f;
     headRadius = 18.0f;
@@ -56,28 +56,55 @@ void Walker::updateTorso() {
 void Walker::updateLegs() {
     float upper = 46.0f, lower = 44.0f;
 
-    float phaseL = t;
-    float phaseR = t + PI;
+    float cycle = fmod(t, 2 * PI);
 
-    // Use smaller hip and foot offsets
-    float footLX = position.x - 6 + stride * cosf(phaseL); // foot closer to body
-    float footLY = baseY - lift * fmaxf(0.0f, sinf(phaseL));
-    float footRX = position.x + 6 + stride * cosf(phaseR);
-    float footRY = baseY - lift * fmaxf(0.0f, sinf(phaseR));
+    float phaseL = cycle;
+    float phaseR = cycle + PI;
 
-    Vector2 hipL = { torsoBottom.x - 5, torsoBottom.y };   // narrower hips
-    Vector2 hipR = { torsoBottom.x + 5, torsoBottom.y };
-    Vector2 footL = { footLX, footLY };
-    Vector2 footR = { footRX, footRY };
+    // Parameters for a more human walk
+    float stanceDuration = 0.6f;
+    float swingStart = 2 * PI * (1 - stanceDuration);
 
-    auto solve_leg = [](Vector2 hip, Vector2 foot, float upper, float lower, Limb2& limb) {
+    // WIDER hips and feet for a bigger stride
+    auto compute_leg = [&](float phase, Vector2 hip, bool isLeft) -> std::pair<Vector2, float> {
+        float normPhase = fmod(phase, 2 * PI);
+
+        float stepX = 0, stepY = 0, kneeBend = 0;
+        if (normPhase < swingStart) {
+            // SWING
+            float swingNorm = normPhase / swingStart;
+            stepX = (isLeft ? -13.0f : 13.0f) + stride * (2 * swingNorm - 1); // widened foot offset
+            stepY = baseY - lift * sinf(PI * swingNorm);
+            kneeBend = 0.9f * (1 - swingNorm);
+        } else {
+            // STANCE
+            stepX = (isLeft ? -13.0f : 13.0f); // widened foot offset
+            stepY = baseY;
+            kneeBend = 0.2f * (1 - cosf(PI * (normPhase - swingStart) / (2 * PI * stanceDuration)));
+        }
+        Vector2 foot = { position.x + stepX, stepY };
+        return { foot, kneeBend };
+    };
+
+    // WIDENED hips for natural gait
+    Vector2 hipL = { torsoBottom.x - 12, torsoBottom.y };
+    Vector2 hipR = { torsoBottom.x + 12, torsoBottom.y };
+
+    auto [footL, bendL] = compute_leg(phaseL, hipL, true);
+    auto [footR, bendR] = compute_leg(phaseR, hipR, false);
+
+    // Solve 2-bone IK, blend the knee bend in swing phase
+    auto solve_leg = [](Vector2 hip, Vector2 foot, float upper, float lower, float kneeBlend, Limb2& limb) {
         Vector2 d = { foot.x - hip.x, foot.y - hip.y };
         float len = sqrtf(d.x * d.x + d.y * d.y);
         len = fminf(len, upper + lower - 1.0f);
 
-        float a = acosf(fmaxf(-1.0f, fminf(1.0f, (upper*upper + len*len - lower*lower) / (2*upper*len))));
+        float a_straight = 0.0f;
+        float a_bent = acosf(fmaxf(-1.0f, fminf(1.0f, (upper*upper + len*len - lower*lower) / (2*upper*len))));
+        float a = kneeBlend * a_bent + (1 - kneeBlend) * a_straight;
+
         float b = atan2f(d.x, d.y);
-        float theta1 = b + fabsf(a); // always bends knee downward
+        float theta1 = b + fabsf(a);
         float theta2 = PI - acosf(fmaxf(-1.0f, fminf(1.0f, (upper*upper + lower*lower - len*len) / (2*upper*lower))));
         limb.root = hip;
         limb.len1 = upper;
@@ -91,10 +118,9 @@ void Walker::updateLegs() {
         limb.tip = foot;
     };
 
-    solve_leg(hipL, footL, upper, lower, leftLeg);
-    solve_leg(hipR, footR, upper, lower, rightLeg);
+    solve_leg(hipL, footL, upper, lower, bendL, leftLeg);
+    solve_leg(hipR, footR, upper, lower, bendR, rightLeg);
 }
-
 
 void Walker::updateArms() {
     Vector2 shoulderL = { torsoTop.x - 18, torsoTop.y + 5 };
