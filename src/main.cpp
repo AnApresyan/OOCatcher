@@ -1,6 +1,7 @@
 #include "raylib.h"
 #include "Walker.h"
-#include <memory>
+#include <cstdlib>
+#include <ctime>
 
 int main() {
     const int screenW = 900, screenH = 600;
@@ -11,10 +12,12 @@ int main() {
     float ballRadius = 32.0f;
     std::srand(std::time(nullptr)); // initialize random seed
 
-    // Function to get a random ball position (not too close to the left side)
+    // Ball randomizer: sometimes high, sometimes low
     auto randomBallCenter = [&]() {
         float x = 400 + rand() % (screenW - 500); // [400, screenW-100]
-        float y = groundY - 50.0f - (rand() % 60); // somewhere above ground
+        float lowY = groundY - 50.0f - (rand() % 25);      // low (waist/chest)
+        float highY = groundY - 140.0f - (rand() % 25);    // high (overhead)
+        float y = (rand() % 2 == 0) ? lowY : highY;        // 50% high/low
         return Vector2{ x, y };
     };
 
@@ -24,9 +27,10 @@ int main() {
     walker.init();
 
     while (!WindowShouldClose()) {
+        // Restart with a new random ball if R is pressed
         if (IsKeyPressed(KEY_R)) {
             ballCenter = randomBallCenter();
-            walker = Walker(ballCenter, ballRadius); // Re-create with new ball
+            walker = Walker(ballCenter, ballRadius);
             walker.init();
         }
 
